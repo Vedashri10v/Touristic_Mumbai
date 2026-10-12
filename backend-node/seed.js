@@ -2,11 +2,12 @@ const mongoose = require('mongoose');
 const Location = require('./models/Location');
 
 // Uses environment variable if present; otherwise defaults directly to your Atlas cluster
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://choudharyvedashri_db_user:vedashri2006@cluster0.XXXXX.mongodb.net/touristic_mumbai_db?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://choudharyvedashri_db_user:vedashri2006@cluster0.c0imnze.mongodb.net/touristic_mumbai_db?retryWrites=true&w=majority";
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas for Seeding...'))
-  .catch(err => console.error('❌ Connection Error:', err));
+if (!MONGODB_URI) {
+    console.error('❌ MONGODB_URI is not set!');
+    process.exit(1);
+}
 
 const sampleLocations = [
   {
@@ -75,16 +76,34 @@ const sampleLocations = [
   }
 ];
 
-const seedData = async () => {
-  try {
-    await Location.deleteMany({});
-    await Location.insertMany(sampleLocations);
-    console.log('🚀 Sample Mumbai places with Ratings & Reviews seeded successfully to Atlas!');
-  } catch (err) {
-    console.error('❌ Error Seeding Data:', err);
-  } finally {
-    mongoose.connection.close();
-  }
-};
+async function seedData() {
+    try {
+        // Connect to MongoDB Atlas first
+        await mongoose.connect(MONGODB_URI, {
+            dbName: 'touristic_mumbai_db'
+        });
+
+        console.log('✅ Connected to MongoDB Atlas!');
+        console.log('Database:', mongoose.connection.name);
+        console.log('Collection:', Location.collection.name);
+
+        // Insert the sample locations
+        await Location.insertMany(sampleLocations);
+
+        // Confirm the number of locations inserted
+        const count = await Location.countDocuments();
+
+        console.log(`🚀 Successfully inserted ${sampleLocations.length} locations!`);
+        console.log(`📍 Total locations in collection: ${count}`);
+
+    } catch (error) {
+        console.error('❌ Seeding failed:', error.message);
+        process.exitCode = 1;
+
+    } finally {
+        await mongoose.disconnect();
+        console.log('🔌 MongoDB connection closed.');
+    }
+}
 
 seedData();
