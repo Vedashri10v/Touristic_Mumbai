@@ -1,6 +1,0 @@
-node_modules/
-backend-node/node_modules/
-frontend-react/node_modules/
-.env
-access.log
-*.log
