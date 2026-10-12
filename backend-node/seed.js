@@ -60,7 +60,8 @@ const sampleLocations = [
     description: 'A vast protected tropical forest featuring ancient rock-cut Kanheri Caves and tiger safaris.',
     history: 'Protected area history dates back to the 3rd century BCE when Buddhist monks carved out the Kanheri Caves.',
     howToReach: 'Located right next to Borivali station (East). Easily accessible by bus or auto.',
-    imageUrl: 'https://images.unsplash.com/photo-1628155930542-3c7a64e2c833?auto=format&fit=crop&w=800&q=80',
+    imageUrl: 'https://static.toiimg.com/photo/101132064.cms', // High-res green lush park & stream photo
+    rating: 4.7,
     rating: 4.7,
     weatherSummary: 'Shaded Green Cover • 28°C',
     entryFee: 85,

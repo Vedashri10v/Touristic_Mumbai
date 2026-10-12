@@ -101,11 +101,11 @@ function App() {
     <div>
       {/* HERO HEADER */}
       <header className="hero-header">
-        <h1>Touristic Mumbai 🏙️</h1>
+        <h1>Touristic Mumbai</h1>
         <p>Explore Top Destinations, Historical Insights & Book Verified Local Guides</p>
         <img 
-          src="https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&w=1200&q=80" 
-          alt="Mumbai Skyline" 
+          src="https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&w=1400&q=80" 
+          alt="Taj Mahal Palace & Gateway of India" 
           className="banner-img" 
         />
       </header>
