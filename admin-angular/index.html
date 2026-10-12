@@ -57,9 +57,9 @@
     var app = angular.module('touristAdminApp', []);
     app.controller('AdminController', function($scope, $http) {
       
-      // Fetch bookings from Express API
+      // Fetch bookings from Express API on Render
       $scope.loadBookings = function() {
-        $http.get('http://localhost:5000/api/admin/bookings')
+        $http.get('https://touristic-mumbai-express.onrender.com/api/admin/bookings')
           .then(function(response) {
             $scope.bookings = response.data;
           })

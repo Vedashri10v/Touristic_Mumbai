@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
+// Live Render API Base URLs
+const EXPRESS_API_URL = 'https://touristic-mumbai-express.onrender.com';
+const FLASK_API_URL = 'https://touristic-mumbai-flask.onrender.com';
+
 function App() {
   const [user, setUser] = useState(null);
   const [authMode, setAuthMode] = useState('login');
@@ -29,8 +33,8 @@ function App() {
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     const endpoint = authMode === 'register' 
-      ? 'http://localhost:5000/api/register' 
-      : 'http://localhost:5000/api/login';
+      ? `${EXPRESS_API_URL}/api/register` 
+      : `${EXPRESS_API_URL}/api/login`;
 
     try {
       const response = await axios.post(endpoint, authForm);
@@ -48,10 +52,10 @@ function App() {
     if (!searchArea) return alert('Please enter an area name!');
 
     try {
-      const res = await axios.get(`http://localhost:5000/api/locations?area=${searchArea}`);
+      const res = await axios.get(`${EXPRESS_API_URL}/api/locations?area=${searchArea}`);
       setPlaces(res.data);
 
-      const flaskRes = await axios.post('http://localhost:5001/api/route-info', { area: searchArea });
+      const flaskRes = await axios.post(`${FLASK_API_URL}/api/route-info`, { area: searchArea });
       setRouteInfo(flaskRes.data.routeInfo);
     } catch (err) {
       console.error('Error searching places:', err);
@@ -73,7 +77,7 @@ function App() {
     };
 
     try {
-      const res = await axios.post('http://localhost:5000/api/pay-and-book', paymentData);
+      const res = await axios.post(`${EXPRESS_API_URL}/api/pay-and-book`, paymentData);
       setBookingStatus(`🎉 ${res.data.message}`);
     } catch (err) {
       setBookingStatus(`❌ ${err.response?.data?.message || 'Payment Declined'}`);
@@ -84,7 +88,7 @@ function App() {
   const handleAddReview = async (e, locationId) => {
     e.preventDefault();
     try {
-      await axios.post(`http://localhost:5000/api/locations/${locationId}/review`, {
+      await axios.post(`${EXPRESS_API_URL}/api/locations/${locationId}/review`, {
         userName: user.fullName,
         comment: reviewData.comment,
         rating: reviewData.rating
