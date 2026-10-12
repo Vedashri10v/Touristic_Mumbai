@@ -15,9 +15,11 @@ const app = express();
 app.use(express.json()); // Allows server to parse JSON request bodies
 app.use(cors());         // Allows front-end apps to communicate with back-end
 
-// 1. Connect to MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/touristic_mumbai_db')
-  .then(() => console.log('✅ Connected to MongoDB: touristic_mumbai_db'))
+// 1. Connect to MongoDB (Dynamic Atlas URI with local fallback)
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/touristic_mumbai_db';
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ Connected to MongoDB Atlas / Local Database'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // 2. Logging Middleware (Lab Exp 7: Node File Handling)
@@ -153,8 +155,8 @@ app.post('/api/locations/:id/review', async (req, res) => {
   }
 });
 
-// Start Express Server
-const PORT = 5000;
+// Start Express Server (Dynamic Port for Render)
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Touristic Mumbai Express Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Touristic Mumbai Express Server running on port ${PORT}`);
 });
