@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -25,13 +26,13 @@ ROUTE_DATABASE = {
 
 @app.route('/api/route-info', methods=['POST'])
 def get_route_info():
-    data = request.get_json()
+    data = request.get_json() or {}
     area = data.get('area', '').strip().lower()
     
     # Retrieve route advisory or fallback tip
     info = ROUTE_DATABASE.get(area, {
         "bestTransport": "Take nearest local train or BEST local bus.",
-        "bestTime": " Morning 9:00 AM - 12:00 PM",
+        "bestTime": "Morning 9:00 AM - 12:00 PM",
         "travelTip": "Hire local auto-rickshaw or taxi to reach exact landmark."
     })
     
@@ -42,5 +43,7 @@ def get_route_info():
     }), 200
 
 if __name__ == '__main__':
-    print("🚀 Flask Microservice starting on http://localhost:5001")
-    app.run(port=5001, debug=True)
+    # Dynamic port binding for cloud providers like Render
+    port = int(os.environ.get('PORT', 5001))
+    print(f"🚀 Flask Microservice starting on port {port}")
+    app.run(host='0.0.0.0', port=port)
