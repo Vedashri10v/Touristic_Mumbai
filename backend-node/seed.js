@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 const Location = require('./models/Location');
 
-mongoose.connect('mongodb://127.0.0.1:27017/touristic_mumbai_db')
-  .then(() => console.log('Connected to MongoDB for Seeding...'))
-  .catch(err => console.error(err));
+// Uses environment variable if present; otherwise defaults directly to your Atlas cluster
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://choudharyvedashri_db_user:vedashri2006@cluster0.XXXXX.mongodb.net/touristic_mumbai_db?retryWrites=true&w=majority";
+
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ Connected to MongoDB Atlas for Seeding...'))
+  .catch(err => console.error('❌ Connection Error:', err));
 
 const sampleLocations = [
   {
@@ -60,8 +63,7 @@ const sampleLocations = [
     description: 'A vast protected tropical forest featuring ancient rock-cut Kanheri Caves and tiger safaris.',
     history: 'Protected area history dates back to the 3rd century BCE when Buddhist monks carved out the Kanheri Caves.',
     howToReach: 'Located right next to Borivali station (East). Easily accessible by bus or auto.',
-    imageUrl: 'https://static.toiimg.com/photo/101132064.cms', // High-res green lush park & stream photo
-    rating: 4.7,
+    imageUrl: 'https://static.toiimg.com/photo/101132064.cms',
     rating: 4.7,
     weatherSummary: 'Shaded Green Cover • 28°C',
     entryFee: 85,
@@ -74,10 +76,15 @@ const sampleLocations = [
 ];
 
 const seedData = async () => {
-  await Location.deleteMany({});
-  await Location.insertMany(sampleLocations);
-  console.log('Sample Mumbai places with Ratings & Reviews seeded successfully!');
-  mongoose.connection.close();
+  try {
+    await Location.deleteMany({});
+    await Location.insertMany(sampleLocations);
+    console.log('🚀 Sample Mumbai places with Ratings & Reviews seeded successfully to Atlas!');
+  } catch (err) {
+    console.error('❌ Error Seeding Data:', err);
+  } finally {
+    mongoose.connection.close();
+  }
 };
 
 seedData();

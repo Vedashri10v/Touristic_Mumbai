@@ -11,4 +11,4 @@ const bookingSchema = new mongoose.Schema({
   paymentStatus:{ type: String, default: 'CONFIRMED' }
 });
 
-module.exports = mongoose.model('Booking', bookingSchema);
+module.exports = mongoose.model('Booking', bookingSchema, 'bookings');
