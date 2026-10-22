@@ -7,7 +7,11 @@ function App() {
   const [authMode, setAuthMode] = useState('login');
   const [authForm, setAuthForm] = useState({ fullName: '', email: '', password: '' });
 
-  // Navigation Tab State
+  // User Profile Edit & Delete State
+  const [editMode, setEditMode] = useState(false);
+  const [updateForm, setUpdateForm] = useState({ fullName: '', password: '' });
+
+  // Navigation Tab State ('explore', 'book', or 'my-bookings')
   const [activeTab, setActiveTab] = useState('explore');
 
   // Search & Locations State
@@ -22,8 +26,13 @@ function App() {
   const [paymentPassword, setPaymentPassword] = useState('');
   const [bookingStatus, setBookingStatus] = useState('');
 
-  // Review Form State
+  // User My-Bookings State
+  const [myBookings, setMyBookings] = useState([]);
+  const [editingBooking, setEditingBooking] = useState(null);
+
+  // Review Form & Editing State
   const [reviewData, setReviewData] = useState({ locationId: '', comment: '', rating: '5' });
+  const [editingReview, setEditingReview] = useState(null);
 
   // Authentication Handler
   const handleAuthSubmit = async (e) => {
@@ -40,6 +49,39 @@ function App() {
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Authentication Failed');
+    }
+  };
+
+  // Handler: Update User Profile
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.put('http://localhost:5000/api/user/update', {
+        email: user.email,
+        fullName: updateForm.fullName || user.fullName,
+        password: updateForm.password
+      });
+
+      setUser(response.data.user);
+      setEditMode(false);
+      alert(response.data.message);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Update failed');
+    }
+  };
+
+  // Handler: Delete User Account
+  const handleDeleteAccount = async () => {
+    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      try {
+        const response = await axios.delete('http://localhost:5000/api/user/delete', {
+          data: { email: user.email }
+        });
+        alert(response.data.message);
+        setUser(null);
+      } catch (err) {
+        alert(err.response?.data?.message || 'Delete failed');
+      }
     }
   };
 
@@ -91,15 +133,77 @@ function App() {
       });
       alert('Review posted successfully!');
       setReviewData({ locationId: '', comment: '', rating: '5' });
-      handleSearch(); // Refresh list
+      handleSearch();
     } catch (err) {
       alert('Failed to post review');
     }
   };
 
+  // Update Review Handler
+  const handleUpdateReview = async (e, locationId, reviewId) => {
+    e.preventDefault();
+    try {
+      await axios.put(`http://localhost:5000/api/locations/${locationId}/review/${reviewId}`, editingReview);
+      alert('Review updated successfully!');
+      setEditingReview(null);
+      handleSearch();
+    } catch (err) {
+      alert('Failed to update review');
+    }
+  };
+
+  // Delete Review Handler
+  const handleDeleteReview = async (locationId, reviewId) => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      try {
+        await axios.delete(`http://localhost:5000/api/locations/${locationId}/review/${reviewId}`);
+        alert('Review deleted!');
+        handleSearch();
+      } catch (err) {
+        alert('Failed to delete review');
+      }
+    }
+  };
+
+  // Fetch Logged-in User Bookings
+  const fetchMyBookings = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/user/bookings?email=${user.email}`);
+      setMyBookings(res.data);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+    }
+  };
+
+  // Reschedule / Update Booking Handler
+  const handleUpdateBooking = async (e, bookingId) => {
+    e.preventDefault();
+    try {
+      await axios.put(`http://localhost:5000/api/bookings/${bookingId}`, editingBooking);
+      alert('Booking updated successfully!');
+      setEditingBooking(null);
+      fetchMyBookings();
+    } catch (err) {
+      alert('Failed to update booking');
+    }
+  };
+
+  // Cancel / Delete Booking Handler
+  const handleDeleteBooking = async (bookingId) => {
+    if (window.confirm('Are you sure you want to cancel and delete this booking?')) {
+      try {
+        await axios.delete(`http://localhost:5000/api/bookings/${bookingId}`);
+        alert('Booking cancelled!');
+        fetchMyBookings();
+      } catch (err) {
+        alert('Failed to delete booking');
+      }
+    }
+  };
+
   return (
     <div>
-         {/* HERO HEADER */}
+      {/* HERO HEADER */}
       <header className="hero-header">
         <h1>Touristic Mumbai</h1>
         <p>Explore Top Destinations, Historical Insights & Book Verified Local Guides</p>
@@ -109,7 +213,6 @@ function App() {
           className="banner-img" 
         />
       </header>
-
 
       <div style={{ maxWidth: '1000px', margin: 'auto', padding: '20px' }}>
         
@@ -151,10 +254,62 @@ function App() {
           </div>
         ) : (
           <div>
-            {/* WELCOME BAR */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0' }}>
-              <h3>Welcome, {user.fullName}! 👋</h3>
-              <button onClick={() => setUser(null)} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>Logout</button>
+            {/* WELCOME BAR WITH ACCOUNT MANAGEMENT */}
+            <div className="card" style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>Welcome, {user.fullName}! 👋 ({user.email})</h3>
+                <div>
+                  <button 
+                    onClick={() => {
+                      setEditMode(!editMode);
+                      setUpdateForm({ fullName: user.fullName, password: '' });
+                    }}
+                    style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '8px' }}
+                  >
+                    {editMode ? 'Cancel Edit' : 'Edit Profile'}
+                  </button>
+                  
+                  <button 
+                    onClick={handleDeleteAccount}
+                    style={{ background: '#dc2626', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '8px' }}
+                  >
+                    Delete Account
+                  </button>
+
+                  <button 
+                    onClick={() => setUser(null)} 
+                    style={{ background: '#6b7280', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+
+              {/* EDIT PROFILE FORM */}
+              {editMode && (
+                <form onSubmit={handleUpdateProfile} style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #ddd' }}>
+                  <h4>Update Profile Details</h4>
+                  <input 
+                    type="text" 
+                    placeholder="Full Name" 
+                    required
+                    value={updateForm.fullName} 
+                    onChange={(e) => setUpdateForm({ ...updateForm, fullName: e.target.value })}
+                    style={{ width: '100%', marginBottom: '10px', padding: '8px', boxSizing: 'border-box' }}
+                  />
+                  <input 
+                    type="password" 
+                    placeholder="New Password (or existing password)" 
+                    required
+                    value={updateForm.password} 
+                    onChange={(e) => setUpdateForm({ ...updateForm, password: e.target.value })}
+                    style={{ width: '100%', marginBottom: '10px', padding: '8px', boxSizing: 'border-box' }}
+                  />
+                  <button type="submit" className="btn-primary" style={{ padding: '8px 16px' }}>
+                    Save Changes
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* TAB NAVIGATION */}
@@ -171,31 +326,39 @@ function App() {
               >
                 👨‍💼 Hire Tour Guides & Book Trips
               </button>
+              <button 
+                className={`tab-btn ${activeTab === 'my-bookings' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('my-bookings'); fetchMyBookings(); }}
+              >
+                📋 My Bookings
+              </button>
             </div>
 
-            {/* SEARCH BAR */}
-            <div className="card" style={{ marginBottom: '25px' }}>
-              <h3>Search Mumbai Locations</h3>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Enter Area (e.g. South Mumbai, Bandra, Borivali)" 
-                  value={searchArea} 
-                  onChange={(e) => setSearchArea(e.target.value)}
-                  style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
-                />
-                <button onClick={handleSearch} className="btn-primary">Search</button>
-              </div>
-
-              {/* FLASK ROUTE ADVISORY */}
-              {routeInfo && (
-                <div style={{ marginTop: '15px', padding: '15px', background: '#f3e8ff', borderRadius: '8px', borderLeft: '4px solid var(--accent-purple)' }}>
-                  <p><strong>💡 Flask Route Advisory:</strong> {routeInfo.travelTip}</p>
-                  <p><strong>🚆 Recommended Transport:</strong> {routeInfo.bestTransport}</p>
-                  <p><strong>⏰ Best Visit Timing:</strong> {routeInfo.bestTime}</p>
+            {/* SEARCH BAR (For Explore/Book tabs) */}
+            {activeTab !== 'my-bookings' && (
+              <div className="card" style={{ marginBottom: '25px' }}>
+                <h3>Search Mumbai Locations</h3>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Enter Area (e.g. South Mumbai, Bandra, Borivali)" 
+                    value={searchArea} 
+                    onChange={(e) => setSearchArea(e.target.value)}
+                    style={{ flex: 1, padding: '12px', borderRadius: '6px', border: '1px solid #ccc' }}
+                  />
+                  <button onClick={handleSearch} className="btn-primary">Search</button>
                 </div>
-              )}
-            </div>
+
+                {/* FLASK ROUTE ADVISORY */}
+                {routeInfo && (
+                  <div style={{ marginTop: '15px', padding: '15px', background: '#f3e8ff', borderRadius: '8px', borderLeft: '4px solid var(--accent-purple)' }}>
+                    <p><strong>💡 Flask Route Advisory:</strong> {routeInfo.travelTip}</p>
+                    <p><strong>🚆 Recommended Transport:</strong> {routeInfo.bestTransport}</p>
+                    <p><strong>⏰ Best Visit Timing:</strong> {routeInfo.bestTime}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* TAB 1: EXPLORE PLACES, HISTORY & REVIEWS */}
             {activeTab === 'explore' && (
@@ -217,24 +380,69 @@ function App() {
                     </p>
                     <p><strong>🚆 How to reach:</strong> {place.howToReach}</p>
 
-                    {/* REVIEWS LIST */}
+                    {/* REVIEWS LIST WITH EDIT/DELETE CONTROLS */}
                     <div style={{ marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
                       <h4>Tourist Reviews:</h4>
-                      {place.reviews && place.reviews.map((rev, idx) => (
-                        <div key={idx} style={{ background: '#f9fafb', padding: '8px', borderRadius: '6px', marginBottom: '6px', fontSize: '13px' }}>
-                          <strong>{rev.userName}</strong> ({'⭐'.repeat(rev.rating)}): {rev.comment}
+                      {place.reviews && place.reviews.map((rev) => (
+                        <div key={rev._id} style={{ background: '#f9fafb', padding: '8px', borderRadius: '6px', marginBottom: '8px', fontSize: '13px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong>{rev.userName} ({'⭐'.repeat(rev.rating)})</strong>
+                            {rev.userName === user.fullName && (
+                              <div>
+                                <span 
+                                  onClick={() => setEditingReview({ id: rev._id, locationId: place._id, comment: rev.comment, rating: rev.rating })} 
+                                  style={{ cursor: 'pointer', color: '#7c3aed', marginRight: '8px', fontWeight: 'bold' }}
+                                >
+                                  Edit
+                                </span>
+                                <span 
+                                  onClick={() => handleDeleteReview(place._id, rev._id)} 
+                                  style={{ cursor: 'pointer', color: '#dc2626', fontWeight: 'bold' }}
+                                >
+                                  Delete
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <p style={{ margin: '4px 0' }}>{rev.comment}</p>
                         </div>
                       ))}
 
-                      {/* ADD REVIEW FORM */}
-                      <form onSubmit={(e) => handleAddReview(e, place._id)} style={{ marginTop: '10px' }}>
-                        <input 
-                          type="text" placeholder="Write a review..." required
-                          onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
-                          style={{ width: '70%', padding: '6px', marginRight: '5px' }}
-                        />
-                        <button type="submit" className="btn-purple" style={{ padding: '6px 10px', fontSize: '12px' }}>Post</button>
-                      </form>
+                      {/* EDIT REVIEW FORM */}
+                      {editingReview && editingReview.locationId === place._id ? (
+                        <form onSubmit={(e) => handleUpdateReview(e, place._id, editingReview.id)} style={{ marginTop: '10px', padding: '10px', background: '#f3e8ff', borderRadius: '6px' }}>
+                          <h5 style={{ margin: '0 0 8px' }}>Edit Review Details</h5>
+                          <input 
+                            type="text" required
+                            value={editingReview.comment} 
+                            onChange={(e) => setEditingReview({ ...editingReview, comment: e.target.value })} 
+                            style={{ width: '100%', padding: '6px', marginBottom: '8px', boxSizing: 'border-box' }} 
+                          />
+                          <select 
+                            value={editingReview.rating} 
+                            onChange={(e) => setEditingReview({ ...editingReview, rating: e.target.value })} 
+                            style={{ padding: '6px', marginRight: '8px' }}
+                          >
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                          </select>
+                          <button type="submit" className="btn-purple" style={{ padding: '6px 10px', fontSize: '12px', marginRight: '5px' }}>Save</button>
+                          <button type="button" onClick={() => setEditingReview(null)} style={{ padding: '6px 10px', fontSize: '12px' }}>Cancel</button>
+                        </form>
+                      ) : (
+                        /* ADD REVIEW FORM */
+                        <form onSubmit={(e) => handleAddReview(e, place._id)} style={{ marginTop: '10px' }}>
+                          <input 
+                            type="text" placeholder="Write a review..." required
+                            onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                            style={{ width: '70%', padding: '6px', marginRight: '5px' }}
+                          />
+                          <button type="submit" className="btn-purple" style={{ padding: '6px 10px', fontSize: '12px' }}>Post</button>
+                        </form>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -306,6 +514,68 @@ function App() {
 
                     {bookingStatus && <h4 style={{ marginTop: '15px', color: 'var(--primary-emerald)' }}>{bookingStatus}</h4>}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 3: USER MY-BOOKINGS MANAGEMENT */}
+            {activeTab === 'my-bookings' && (
+              <div className="card">
+                <h3>My Confirmed Tour Guide Bookings</h3>
+                {myBookings.length === 0 ? (
+                  <p>No active tour guide bookings found for your account.</p>
+                ) : (
+                  myBookings.map((b) => (
+                    <div key={b._id} style={{ border: '1px solid #e2e8f0', padding: '15px', borderRadius: '8px', marginBottom: '15px', background: '#f8fafc' }}>
+                      <p><strong>Destination:</strong> {b.locationName}</p>
+                      <p><strong>Tour Guide:</strong> {b.guideName}</p>
+                      <p><strong>Visit Date:</strong> {b.bookingDate}</p>
+                      <p><strong>Time Slot:</strong> {b.slotTiming}</p>
+                      <p><strong>Amount Paid:</strong> ₹{b.amountPaid}</p>
+                      <p><strong>Status:</strong> <span style={{ color: 'green', fontWeight: 'bold' }}>{b.paymentStatus}</span></p>
+
+                      <button 
+                        onClick={() => setEditingBooking({ id: b._id, bookingDate: b.bookingDate, slotTiming: b.slotTiming })} 
+                        style={{ background: '#7c3aed', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', marginRight: '8px' }}
+                      >
+                        Reschedule / Update
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteBooking(b._id)} 
+                        style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Cancel Booking
+                      </button>
+
+                      {/* EDIT BOOKING / RESCHEDULE FORM */}
+                      {editingBooking && editingBooking.id === b._id && (
+                        <form onSubmit={(e) => handleUpdateBooking(e, b._id)} style={{ marginTop: '15px', padding: '15px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #2563eb' }}>
+                          <h4>Reschedule Visit Slot</h4>
+                          <label style={{ display: 'block', margin: '5px 0' }}>New Date:</label>
+                          <input 
+                            type="date" required 
+                            value={editingBooking.bookingDate} 
+                            onChange={(e) => setEditingBooking({ ...editingBooking, bookingDate: e.target.value })} 
+                            style={{ display: 'block', margin: '5px 0 10px', padding: '6px', width: '100%', boxSizing: 'border-box' }} 
+                          />
+
+                          <label style={{ display: 'block', margin: '5px 0' }}>New Time Slot:</label>
+                          <select 
+                            value={editingBooking.slotTiming} 
+                            onChange={(e) => setEditingBooking({ ...editingBooking, slotTiming: e.target.value })} 
+                            style={{ display: 'block', margin: '5px 0 10px', padding: '6px', width: '100%', boxSizing: 'border-box' }}
+                          >
+                            <option value="9:00 AM - 12:00 PM">9:00 AM - 12:00 PM</option>
+                            <option value="1:00 PM - 4:00 PM">1:00 PM - 4:00 PM</option>
+                            <option value="4:00 PM - 7:00 PM">4:00 PM - 7:00 PM</option>
+                          </select>
+
+                          <button type="submit" className="btn-primary" style={{ padding: '6px 12px', marginRight: '5px' }}>Save Changes</button>
+                          <button type="button" onClick={() => setEditingBooking(null)} style={{ padding: '6px 12px' }}>Cancel</button>
+                        </form>
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
             )}
